@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion, useMotionValueEvent, useScroll } from "framer-motion";
 import { Menu, X } from "lucide-react";
 import { Logo } from "./Logo";
 
@@ -16,9 +16,21 @@ const ease = [0.22, 1, 0.36, 1] as const;
 
 export function Navbar() {
   const [open, setOpen] = useState(false);
+  const [hidden, setHidden] = useState(false);
+  const { scrollY } = useScroll();
+
+  // Slide away while scrolling down, come back on any scroll up.
+  useMotionValueEvent(scrollY, "change", (y) => {
+    const delta = y - (scrollY.getPrevious() ?? 0);
+    if (y < 120 || delta < -4) setHidden(false);
+    else if (delta > 4) setHidden(true);
+  });
 
   return (
-    <header className="sticky top-0 z-50 border-b border-gold/20 bg-background/85 backdrop-blur-md">
+    <motion.header
+      animate={{ y: hidden && !open ? "-100%" : "0%" }}
+      transition={{ duration: 0.5, ease }}
+      className="sticky top-0 z-50 border-b border-gold/20 bg-background/85 backdrop-blur-md">
       <nav className="mx-auto flex h-20 max-w-7xl items-center justify-between px-6 sm:px-12">
         <Logo />
 
@@ -70,6 +82,6 @@ export function Navbar() {
           </motion.ul>
         )}
       </AnimatePresence>
-    </header>
+    </motion.header>
   );
 }
