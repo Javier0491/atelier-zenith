@@ -68,7 +68,7 @@ export function Services() {
               </span>
               <h3 className="mt-4 font-serif text-3xl font-light leading-tight">{title}</h3>
               <div className="mt-8 h-px w-10 bg-gold/50 transition-all duration-700 ease-luxe group-hover:w-20 group-hover:bg-gold" />
-              <p className="mt-8 text-sm font-light leading-relaxed text-foreground/60">{description}</p>
+              <p className="mt-8 text-sm font-light leading-relaxed text-zinc-400">{description}</p>
             </motion.article>
           ))}
         </div>

@@ -3,11 +3,12 @@
 import { useState, type FormEvent } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowRight } from "lucide-react";
+import { Magnetic } from "./Magnetic";
 
 const ease = [0.22, 1, 0.36, 1] as const;
 
 const fieldClass =
-  "peer w-full border-0 border-b border-foreground/20 bg-transparent px-0 pb-3 pt-2 text-base font-light text-foreground outline-none transition-colors duration-500 placeholder:text-transparent focus:border-gold";
+  "peer w-full border-0 border-b border-foreground/35 bg-transparent px-0 pb-3 pt-2 text-base font-light text-foreground outline-none transition-colors duration-500 placeholder:text-transparent focus:border-gold";
 
 const labelClass =
   "mb-2 block text-[10px] tracking-[0.4em] text-foreground/50 transition-colors duration-500 group-focus-within:text-gold";
@@ -87,16 +88,18 @@ export function Contact() {
                 />
               </label>
 
-              <button
-                type="submit"
-                className="group inline-flex items-center gap-4 self-start bg-gold px-10 py-4 text-[10px] font-medium tracking-[0.4em] text-background transition-[filter] duration-500 hover:brightness-110"
-              >
-                ENVIAR
-                <ArrowRight
-                  strokeWidth={1.25}
-                  className="size-4 transition-transform duration-500 ease-luxe group-hover:translate-x-1"
-                />
-              </button>
+              <Magnetic className="self-start">
+                <button
+                  type="submit"
+                  className="group inline-flex items-center gap-4 bg-gold px-10 py-4 text-[10px] font-medium tracking-[0.4em] text-background transition-[filter] duration-500 hover:brightness-110"
+                >
+                  ENVIAR
+                  <ArrowRight
+                    strokeWidth={1.25}
+                    className="size-4 transition-transform duration-500 ease-luxe group-hover:translate-x-1"
+                  />
+                </button>
+              </Magnetic>
             </motion.form>
           )}
         </AnimatePresence>

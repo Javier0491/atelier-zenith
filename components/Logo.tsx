@@ -17,13 +17,8 @@ export function Logo() {
           className="origin-[50%_41%] scale-200 object-cover object-[50%_41%]"
         />
       </span>
-      <span className="hidden flex-col sm:flex">
-        <span className="font-serif text-lg font-light leading-none tracking-[0.3em] text-gold">
-          ATELIER ZENITH
-        </span>
-        <span className="mt-1.5 text-[8px] tracking-[0.3em] text-foreground/60">
-          ESTUDIO DE DISEÑO &amp; DESARROLLO WEB
-        </span>
+      <span className="hidden font-serif text-lg font-light tracking-[0.3em] text-gold sm:block">
+        ATELIER ZENITH
       </span>
     </a>
   );
