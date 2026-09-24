@@ -7,8 +7,10 @@ import { Magnetic } from "./Magnetic";
 
 const ease = [0.22, 1, 0.36, 1] as const;
 
-// TODO: set the real starting price.
-const STARTING_PRICE = "$X";
+const STARTING_PRICE = "$7,000";
+
+// Form submissions open a WhatsApp chat with this number (México, +52).
+const WHATSAPP_NUMBER = "525574812146";
 
 const paths = [
   {
@@ -27,7 +29,7 @@ const paths = [
     id: "marketing",
     title: "Marketing",
     description:
-      "Posicionamiento SEO, campañas y generación de leads para que tu presencia digital trabaje a diario a favor de tu negocio.",
+      "Marketing orgánico: posicionamiento SEO, estrategia de contenido y embudos de captación de leads para que tu presencia digital trabaje a diario a favor de tu negocio. No incluye gestión de pauta publicitaria (anuncios pagados).",
   },
 ];
 
@@ -57,8 +59,11 @@ export function Contact() {
             Inicia tu <span className="italic text-gold">proyecto</span>
           </h2>
           <div className="mt-12 border-t border-foreground/15 pt-8">
-            <p className="text-[10px] tracking-[0.4em] text-zinc-400">INVERSIONES DESDE</p>
+            <p className="text-[10px] tracking-[0.4em] text-zinc-400">PÁGINA WEB DESDE</p>
             <p className="mt-3 font-serif text-5xl font-light text-gold md:text-6xl">{STARTING_PRICE}</p>
+            <p className="mt-4 max-w-sm text-xs font-light leading-relaxed text-zinc-400">
+              La inversión final puede aumentar según el alcance y las necesidades de cada proyecto.
+            </p>
           </div>
           <p className="mt-10 max-w-sm text-sm font-light leading-relaxed text-zinc-400">
             Cada colaboración comienza con una conversación. Elige un punto de partida y cuéntanos tu
@@ -149,7 +154,19 @@ function ContactForm({ path, onBack }: { path: Path; onBack: () => void }) {
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    // TODO: send to an email service or a Server Action — nothing is delivered yet.
+    const data = new FormData(event.currentTarget);
+    const text = [
+      `Hola, me interesa: ${path.title}`,
+      `Nombre: ${data.get("nombre")}`,
+      `Email: ${data.get("email")}`,
+      "",
+      String(data.get("mensaje")),
+    ].join("\n");
+    window.open(
+      `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(text)}`,
+      "_blank",
+      "noopener,noreferrer",
+    );
     setSent(true);
   }
 
@@ -170,7 +187,8 @@ function ContactForm({ path, onBack }: { path: Path; onBack: () => void }) {
           >
             <p className="font-serif text-4xl font-light italic text-gold">Gracias.</p>
             <p className="mt-6 text-sm font-light text-zinc-400">
-              Hemos recibido tu mensaje sobre {path.title}. Te contactaremos muy pronto.
+              Abrimos WhatsApp con tu mensaje sobre {path.title}. Solo presiona enviar y te
+              contactaremos muy pronto.
             </p>
           </motion.div>
         ) : (

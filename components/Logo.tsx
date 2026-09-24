@@ -4,12 +4,12 @@ export function Logo() {
   return (
     <a href="#" aria-label="Atelier Zenith — inicio" className="flex items-center gap-4">
       {/*
-        logo.jpg is the AZ monogram on dark texture; cover-fit trims the side
+        logo-az.jpg is the AZ monogram on dark texture; cover-fit trims the side
         margins and the mask feathers the texture into the navbar.
       */}
       <span className="logo-mark relative block h-12 w-16 shrink-0 overflow-hidden">
         <Image
-          src="/logo.jpg"
+          src="/logo-az.jpg"
           alt=""
           fill
           priority
