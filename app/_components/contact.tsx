@@ -2,15 +2,20 @@
 
 import { useState, type FormEvent } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowLeft, ArrowRight } from "lucide-react";
+import { ArrowLeft, ArrowRight, ArrowUpRight, Mail, MessageCircle } from "lucide-react";
 import { Magnetic } from "./Magnetic";
+import { InstagramIcon } from "./SocialIcons";
+import { EMAIL, INSTAGRAM, PHONE_DISPLAY, whatsappLink } from "../_lib/contact-info";
 
 const ease = [0.22, 1, 0.36, 1] as const;
 
 const STARTING_PRICE = "$7,000";
 
-// Form submissions open a WhatsApp chat with this number (México, +52).
-const WHATSAPP_NUMBER = "525574812146";
+const channels = [
+  { label: "WHATSAPP", value: PHONE_DISPLAY, href: whatsappLink(), Icon: MessageCircle, external: true },
+  { label: "CORREO", value: EMAIL, href: `mailto:${EMAIL}`, Icon: Mail, external: false },
+  { label: "INSTAGRAM", value: INSTAGRAM.handle, href: INSTAGRAM.href, Icon: InstagramIcon, external: true },
+];
 
 const paths = [
   {
@@ -69,6 +74,28 @@ export function Contact() {
             Cada colaboración comienza con una conversación. Elige un punto de partida y cuéntanos tu
             visión.
           </p>
+
+          <ul className="mt-12 border-t border-foreground/15">
+            {channels.map(({ label, value, href, Icon, external }) => (
+              <li key={label} className="border-b border-foreground/15">
+                <a
+                  href={href}
+                  {...(external && { target: "_blank", rel: "noopener noreferrer" })}
+                  className="group flex items-center gap-5 py-5"
+                >
+                  <Icon strokeWidth={1.25} className="size-4 shrink-0 text-gold" />
+                  <span className="w-24 shrink-0 text-[10px] tracking-[0.35em] text-zinc-500">{label}</span>
+                  <span className="min-w-0 flex-1 truncate font-serif text-xl font-light transition-colors duration-500 group-hover:text-gold">
+                    {value}
+                  </span>
+                  <ArrowUpRight
+                    strokeWidth={1.25}
+                    className="size-4 shrink-0 text-foreground/30 transition-[color,translate] duration-500 ease-luxe group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-gold"
+                  />
+                </a>
+              </li>
+            ))}
+          </ul>
         </motion.div>
 
         <AnimatePresence mode="wait">
@@ -162,11 +189,8 @@ function ContactForm({ path, onBack }: { path: Path; onBack: () => void }) {
       "",
       String(data.get("mensaje")),
     ].join("\n");
-    window.open(
-      `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(text)}`,
-      "_blank",
-      "noopener,noreferrer",
-    );
+    // Form submissions open a WhatsApp chat with the studio, message prefilled.
+    window.open(whatsappLink(text), "_blank", "noopener,noreferrer");
     setSent(true);
   }
 
