@@ -1,14 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useState, type MouseEvent } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import Image from "next/image";
-import {
-  motion,
-  useMotionValue,
-  useScroll,
-  useSpring,
-  useTransform,
-} from "framer-motion";
+import { motion, useMotionValue, useScroll, useSpring, useTransform } from "framer-motion";
 import { ArrowRight, ArrowUpRight } from "lucide-react";
 import { Magnetic } from "./Magnetic";
 import {
@@ -21,6 +15,23 @@ import {
 // Shared by every card in the track so they line up.
 const cardSize = "h-[70vh] w-[80vw] shrink-0 sm:h-[78vh] sm:w-[min(62vh,70vw)]";
 
+// Project strips: full cards on phones; from `sm` up, thin strips that open on hover.
+// The open width matches the screenshots' ~1.93:1 ratio at 78vh tall (78 × 1.93 ≈ 150.5).
+const stripHeight = "h-[70vh] sm:h-[78vh]";
+const stripClosed = "w-[80vw] sm:w-[clamp(96px,9vw,150px)]";
+const stripOpen = "w-[80vw] sm:w-[min(150.5vh,78vw)]";
+/** Content inside a strip is laid out at the open width so it never reflows mid-animation. */
+const stripContent = "w-full sm:w-[min(150.5vh,78vw)]";
+
+const OPEN_DURATION_MS = 700;
+
+type StripControls = {
+  open: boolean;
+  /** `pointerX` keeps the strip under the cursor if the track has to slide to fit it. */
+  onOpen: (id: string, el: HTMLElement, pointerX?: number) => void;
+  onClose: (id: string) => void;
+};
+
 export function Portfolio() {
   const sectionRef = useRef<HTMLElement>(null);
   const viewportRef = useRef<HTMLDivElement>(null);
@@ -28,34 +39,83 @@ export function Portfolio() {
 
   // How far the track must travel so its last card ends at the right edge.
   const distance = useMotionValue(0);
+  // Extra slide so an opening strip near the right edge stays fully on screen.
+  const shift = useSpring(0, { stiffness: 120, damping: 24 });
+
+  const [openId, setOpenId] = useState<string | null>(null);
+  // While a strip is open (or closing) the track is wider than usual; measuring then would
+  // make the whole gallery jump, so the distance stays frozen until it settles.
+  const frozen = useRef(false);
+  const settleTimer = useRef<number | undefined>(undefined);
+
+  const measure = useCallback(() => {
+    if (frozen.current || !trackRef.current || !viewportRef.current) return;
+    distance.set(Math.max(0, trackRef.current.scrollWidth - viewportRef.current.clientWidth));
+  }, [distance]);
 
   useEffect(() => {
-    const measure = () => {
-      if (!trackRef.current || !viewportRef.current) return;
-      distance.set(Math.max(0, trackRef.current.scrollWidth - viewportRef.current.clientWidth));
-    };
     measure();
     const observer = new ResizeObserver(measure);
     if (trackRef.current) observer.observe(trackRef.current);
     if (viewportRef.current) observer.observe(viewportRef.current);
-    return () => observer.disconnect();
-  }, [distance]);
+    return () => {
+      observer.disconnect();
+      window.clearTimeout(settleTimer.current);
+    };
+  }, [measure]);
+
+  const onOpen = useCallback(
+    (id: string, el: HTMLElement, pointerX?: number) => {
+      if (window.innerWidth < 640) return;
+      window.clearTimeout(settleTimer.current);
+      frozen.current = true;
+      setOpenId(id);
+
+      const openWidth = Math.min(1.505 * window.innerHeight, 0.78 * window.innerWidth);
+      // Stop short of the edge, but never so far left that the strip slides out from under the cursor.
+      const rightLimit = Math.min(
+        window.innerWidth,
+        Math.max(window.innerWidth * 0.92, (pointerX ?? 0) + 48),
+      );
+      const overflow = el.getBoundingClientRect().left + openWidth - rightLimit;
+      shift.set(overflow > 0 ? -overflow : 0);
+    },
+    [shift],
+  );
+
+  const onClose = useCallback(
+    (id: string) => {
+      setOpenId((current) => {
+        if (current !== id) return current;
+        shift.set(0);
+        window.clearTimeout(settleTimer.current);
+        settleTimer.current = window.setTimeout(() => {
+          frozen.current = false;
+          measure();
+        }, OPEN_DURATION_MS + 100);
+        return null;
+      });
+    },
+    [measure, shift],
+  );
 
   const { scrollYProgress } = useScroll({
     target: sectionRef,
     offset: ["start start", "end end"],
   });
-  const x = useTransform([scrollYProgress, distance], ([p, d]: number[]) => -p * d);
+  const x = useTransform([scrollYProgress, distance, shift], ([p, d, s]: number[]) => -p * d + s);
   const progress = useSpring(scrollYProgress, { stiffness: 120, damping: 30 });
 
+  const controls = (id: string): StripControls => ({ open: openId === id, onOpen, onClose });
+
   return (
-    <section id="portafolio" ref={sectionRef} className="relative h-[420vh]">
+    <section id="portafolio" ref={sectionRef} className="relative h-[300vh]">
       <div
         ref={viewportRef}
         className="sticky top-0 flex h-screen flex-col justify-center overflow-hidden pt-20"
       >
-        <motion.div ref={trackRef} style={{ x }} className="flex w-max items-center gap-[4vw] px-6 sm:px-[8vw]">
-          <header className="flex w-[80vw] shrink-0 flex-col sm:w-[34vw]">
+        <motion.div ref={trackRef} style={{ x }} className="flex w-max items-center gap-[4vw] px-6 sm:gap-[1.5vw] sm:px-[8vw]">
+          <header className="flex w-[80vw] shrink-0 flex-col sm:mr-[2.5vw] sm:w-[34vw]">
             <p className="mb-8 text-[10px] tracking-[0.5em] text-gold">— PORTAFOLIO</p>
             <h2 className="font-serif text-5xl font-light leading-[1.05] md:text-7xl">
               Proyectos
@@ -72,10 +132,16 @@ export function Portfolio() {
           </header>
 
           {featuredProjects.map((project, i) => (
-            <ProjectCard key={project.title} project={project} index={i} />
+            <ProjectCard
+              key={project.title}
+              project={project}
+              index={i}
+              {...controls(`featured-${project.title}`)}
+              id={`featured-${project.title}`}
+            />
           ))}
 
-          <header className="ml-[4vw] flex w-[70vw] shrink-0 flex-col sm:w-[26vw]">
+          <header className="ml-[4vw] flex w-[70vw] shrink-0 flex-col sm:mx-[2.5vw] sm:w-[26vw]">
             <p className="mb-8 text-[10px] tracking-[0.5em] text-gold">— PRÓXIMOS PROYECTOS</p>
             <h2 className="font-serif text-5xl font-light leading-[1.05] md:text-6xl">
               En el
@@ -88,10 +154,17 @@ export function Portfolio() {
           </header>
 
           {upcomingProjects.map((project) => (
-            <UpcomingCard key={project.title} project={project} />
+            <UpcomingCard
+              key={project.title}
+              project={project}
+              {...controls(`upcoming-${project.title}`)}
+              id={`upcoming-${project.title}`}
+            />
           ))}
 
-          <CtaCard />
+          <div className="shrink-0 sm:ml-[2.5vw]">
+            <CtaCard />
+          </div>
         </motion.div>
 
         {/* Scroll progress through the gallery. */}
@@ -103,61 +176,123 @@ export function Portfolio() {
   );
 }
 
-function ProjectCard({ project, index }: { project: FeaturedProject; index: number }) {
+/**
+ * A strip that widens on hover, focus or tap. Closed, it shows a slice of the screenshot;
+ * open, the whole screenshot fades in, uncropped, over a blurred copy that fills the frame.
+ */
+function Strip({
+  id,
+  open,
+  onOpen,
+  onClose,
+  image,
+  art,
+  soft = false,
+  className,
+  children,
+}: StripControls & {
+  id: string;
+  image: string;
+  art: string;
+  /** Keeps the screenshot hazy, for work that is not ready to be shown. */
+  soft?: boolean;
+  className: string;
+  children: ReactNode;
+}) {
   // Until the photo exists (or if it fails), the gradient art stands in for it.
   const [imageFailed, setImageFailed] = useState(false);
 
-  // Pointer position within the card, -0.5 … 0.5 on each axis.
-  const px = useMotionValue(0);
-  const py = useMotionValue(0);
-  const smooth = { stiffness: 150, damping: 20, mass: 0.5 };
-  // The image drifts against the pointer for a sense of depth.
-  const imageX = useSpring(useTransform(px, (v) => v * -36), smooth);
-  const imageY = useSpring(useTransform(py, (v) => v * -36), smooth);
-
-  function handleMove(e: MouseEvent<HTMLDivElement>) {
-    const rect = e.currentTarget.getBoundingClientRect();
-    px.set((e.clientX - rect.left) / rect.width - 0.5);
-    py.set((e.clientY - rect.top) / rect.height - 0.5);
-  }
-
-  function handleLeave() {
-    px.set(0);
-    py.set(0);
-  }
-
   return (
     <div
-      onMouseMove={handleMove}
-      onMouseLeave={handleLeave}
-      className={`group relative block ${cardSize} overflow-hidden border border-foreground/10 transition-[border-color,box-shadow] duration-700 ease-luxe hover:border-gold/60 hover:shadow-[0_0_50px_-12px_rgba(197,160,89,0.35)]`}
+      data-open={open}
+      onPointerEnter={(e) => e.pointerType === "mouse" && onOpen(id, e.currentTarget, e.clientX)}
+      onPointerLeave={(e) => e.pointerType === "mouse" && onClose(id)}
+      onClick={(e) => !open && onOpen(id, e.currentTarget)}
+      onFocus={(e) => onOpen(id, e.currentTarget)}
+      onBlur={(e) => !e.currentTarget.contains(e.relatedTarget) && onClose(id)}
+      className={`group relative ${stripHeight} shrink-0 overflow-hidden transition-[width,border-color,box-shadow] duration-700 ease-luxe ${open ? stripOpen : stripClosed} ${className}`}
     >
-      {/* Oversized so the parallax drift never exposes an edge. */}
-      <motion.div
-        style={{ x: imageX, y: imageY, backgroundImage: project.art }}
-        className="absolute -inset-10 bg-surface transition-[scale] duration-[1400ms] ease-luxe group-hover:scale-105"
-      >
+      <div style={{ backgroundImage: art }} className="absolute inset-0 bg-surface">
         {!imageFailed && (
-          <Image
-            src={project.image}
-            alt=""
-            fill
-            sizes="(min-width: 640px) 70vw, 90vw"
-            className="object-cover"
-            onError={() => setImageFailed(true)}
-          />
+          <>
+            <Image
+              src={image}
+              alt=""
+              fill
+              sizes="80vw"
+              className={`object-cover transition-[scale,filter,opacity] duration-700 ease-luxe ${
+                soft ? "opacity-60 blur-[3px] grayscale-[40%]" : ""
+              } ${open ? "sm:scale-110 sm:opacity-35 sm:blur-xl" : ""}`}
+              onError={() => setImageFailed(true)}
+            />
+            <Image
+              src={image}
+              alt=""
+              fill
+              sizes="80vw"
+              className={`hidden object-contain transition-opacity duration-500 ease-luxe sm:block ${
+                soft ? "blur-[2px] grayscale-[40%]" : ""
+              } ${open ? `${soft ? "opacity-70" : "opacity-100"} delay-300` : "opacity-0"}`}
+            />
+          </>
         )}
-      </motion.div>
+      </div>
+      {children}
+    </div>
+  );
+}
 
+/** Title that runs bottom-to-top while the strip is closed (desktop only). */
+function StripLabel({ open, children }: { open: boolean; children: ReactNode }) {
+  return (
+    <span
+      aria-hidden="true"
+      className={`absolute bottom-8 left-1/2 hidden -translate-x-1/2 rotate-180 whitespace-nowrap font-serif text-3xl font-light text-gold transition-opacity duration-500 [text-orientation:sideways] [writing-mode:vertical-rl] sm:block ${
+        open ? "opacity-0" : "opacity-100 delay-300"
+      }`}
+    >
+      {children}
+    </span>
+  );
+}
+
+/** Wraps what only makes sense at full width: always shown on phones, faded in once open. */
+function openOnly(open: boolean) {
+  return `transition-opacity duration-500 ${open ? "sm:opacity-100 sm:delay-300" : "sm:pointer-events-none sm:opacity-0"}`;
+}
+
+function ProjectCard({
+  project,
+  index,
+  ...strip
+}: StripControls & { id: string; project: FeaturedProject; index: number }) {
+  const { open } = strip;
+
+  return (
+    <Strip
+      {...strip}
+      image={project.image}
+      art={project.art}
+      className={`border ${
+        open
+          ? "border-gold/60 shadow-[0_0_50px_-12px_rgba(197,160,89,0.35)]"
+          : "border-foreground/10 hover:border-gold/40"
+      }`}
+    >
       {/* Dark overlay so the type stays legible over any photograph. */}
-      {!imageFailed && <div className="absolute inset-0 bg-black/30" />}
+      <div className="absolute inset-0 bg-black/30 transition-opacity duration-700 sm:group-data-[open=true]:opacity-0" />
       <div className="absolute inset-0 bg-linear-to-t from-black/85 via-black/10 to-transparent" />
 
-      <span className="absolute left-7 top-7 text-[10px] tracking-[0.4em] text-foreground/40">
-        {String(index + 1).padStart(2, "0")} / {String(featuredProjects.length).padStart(2, "0")}
+      <span className="absolute left-7 top-7 whitespace-nowrap text-[10px] tracking-[0.4em] text-foreground/40">
+        {String(index + 1).padStart(2, "0")}
+        <span className={openOnly(open)}> / {String(featuredProjects.length).padStart(2, "0")}</span>
       </span>
 
-      <div className="absolute inset-x-0 bottom-0 flex items-end justify-between gap-6 p-7 md:p-9">
+      <StripLabel open={open}>{project.title}</StripLabel>
+
+      <div
+        className={`absolute bottom-0 left-0 flex ${stripContent} items-end justify-between gap-6 p-7 md:p-9 ${openOnly(open)}`}
+      >
         <div>
           <h3 className="font-serif text-4xl font-light text-gold md:text-5xl">{project.title}</h3>
           <p className="mt-4 text-[10px] tracking-[0.25em] text-foreground/50">{project.tags}</p>
@@ -171,7 +306,7 @@ function ProjectCard({ project, index }: { project: FeaturedProject; index: numb
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label={`Ver ${project.title} (se abre en una pestaña nueva)`}
-                className="flex size-16 flex-col items-center md:size-20 justify-center gap-1 rounded-full border border-gold/50 text-[9px] tracking-[0.3em] text-foreground transition-colors duration-500 group-hover:border-gold group-hover:bg-gold group-hover:text-black"
+                className="flex size-16 flex-col items-center md:size-20 justify-center gap-1 rounded-full border border-gold/50 text-[9px] tracking-[0.3em] text-foreground transition-colors duration-500 hover:border-gold hover:bg-gold hover:text-black"
               >
                 <span className="pl-[0.3em]">VER</span>
                 <ArrowUpRight strokeWidth={1.25} className="size-3.5" />
@@ -187,47 +322,43 @@ function ProjectCard({ project, index }: { project: FeaturedProject; index: numb
           )}
         </div>
       </div>
-    </div>
+    </Strip>
   );
 }
 
-function UpcomingCard({ project }: { project: UpcomingProject }) {
-  const [imageFailed, setImageFailed] = useState(false);
+function UpcomingCard({
+  project,
+  ...strip
+}: StripControls & { id: string; project: UpcomingProject }) {
+  const { open } = strip;
 
   return (
-    <div className={`relative ${cardSize} overflow-hidden border border-dashed border-foreground/15`}>
-      {/* Softened screenshot: a glimpse, not a reveal. */}
-      <div
-        style={{ backgroundImage: project.art }}
-        className="absolute -inset-10 bg-surface opacity-70 blur-2xl"
-      />
-      {!imageFailed && (
-        <Image
-          src={project.image}
-          alt=""
-          fill
-          sizes="(min-width: 640px) 70vw, 90vw"
-          className="object-cover opacity-60 blur-[3px] grayscale-[40%]"
-          onError={() => setImageFailed(true)}
-        />
-      )}
+    <Strip
+      {...strip}
+      image={project.image}
+      art={project.art}
+      soft
+      className={`border border-dashed ${open ? "border-gold/40" : "border-foreground/15"}`}
+    >
       <div className="absolute inset-0 bg-linear-to-t from-black/85 via-black/20 to-transparent" />
 
-      <span className="absolute left-7 top-7 flex items-center gap-3 text-[10px] tracking-[0.4em] text-gold">
+      <span className="absolute left-7 top-7 flex items-center gap-3 whitespace-nowrap text-[10px] tracking-[0.4em] text-gold">
         <span className="relative flex size-2">
           <span className="absolute inset-0 animate-ping rounded-full bg-gold/60" />
           <span className="relative size-2 rounded-full bg-gold" />
         </span>
-        {project.status.toUpperCase()}
+        <span className={openOnly(open)}>{project.status.toUpperCase()}</span>
       </span>
 
-      <div className="absolute inset-x-0 bottom-0 p-7 md:p-9">
+      <StripLabel open={open}>{project.title}</StripLabel>
+
+      <div className={`absolute bottom-0 left-0 ${stripContent} p-7 md:p-9 ${openOnly(open)}`}>
         <h3 className="font-serif text-4xl font-light text-foreground/80 md:text-5xl">{project.title}</h3>
         <p className="mt-4 text-[10px] tracking-[0.25em] text-foreground/45">
           {project.sector.toUpperCase()} • {project.eta}
         </p>
       </div>
-    </div>
+    </Strip>
   );
 }
 
