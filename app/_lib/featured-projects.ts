@@ -1,6 +1,8 @@
 export type FeaturedProject = {
   title: string;
   tags: string;
+  /** Technical level of the solution, shown as a badge on the card. */
+  tag: string;
   year: string;
   /** Background photo, served from /public. */
   image: string;
@@ -14,6 +16,7 @@ export type FeaturedProject = {
 export const featuredProjects: FeaturedProject[] = [
   {
     title: "Padilla’s Films",
+    tag: "E-COMMERCE & GALERÍA DIGITAL",
     tags: "HTML · CSS · JavaScript · Mercado Pago",
     year: "2026",
     image: "/proyecto1.png",
@@ -23,6 +26,7 @@ export const featuredProjects: FeaturedProject[] = [
   },
   {
     title: "HEROA Real Estate",
+    tag: "WEB + CRM OPERATIVO",
     tags: "Next.js · Tailwind · Framer Motion",
     year: "2026",
     image: "/proyecto2.png",
@@ -36,6 +40,8 @@ export type UpcomingProject = {
   title: string;
   sector: string;
   status: string;
+  /** Technical level of the solution, shown as a badge on the card. */
+  tag: string;
   eta: string;
   /** Screenshot, served from /public; shown softened as a preview. */
   image: string;
@@ -45,6 +51,7 @@ export type UpcomingProject = {
 export const upcomingProjects: UpcomingProject[] = [
   {
     title: "Fashion Tour NYC",
+    tag: "PLATAFORMA INTERACTIVA",
     sector: "Moda & Experiencias",
     status: "En desarrollo",
     eta: "2026",
@@ -53,6 +60,7 @@ export const upcomingProjects: UpcomingProject[] = [
   },
   {
     title: "Carlos Sotomayor",
+    tag: "SITIO WEB EDITORIAL",
     sector: "Moda Nupcial",
     status: "En desarrollo",
     eta: "2026",
