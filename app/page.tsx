@@ -8,12 +8,14 @@ import { Marquee } from "./_components/Marquee";
 import { PillMarquee } from "./_components/PillMarquee";
 import { Portfolio } from "./_components/portfolio";
 import { Services } from "./_components/services";
+import { ZenithSolutions } from "./_components/ZenithSolutions";
 
 export default function Home() {
   return (
     <>
       <main className="flex-1">
         <Hero />
+        <ZenithSolutions />
         <Services />
         <Impact />
         <PillMarquee />
