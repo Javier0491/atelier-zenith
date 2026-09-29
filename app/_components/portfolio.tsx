@@ -261,18 +261,12 @@ function openOnly(open: boolean) {
   return `transition-opacity duration-500 ${open ? "sm:opacity-100 sm:delay-300" : "sm:pointer-events-none sm:opacity-0"}`;
 }
 
-/**
- * Glass pill naming the solution's technical level. It sits in a layer laid out at the open
- * width (like the caption) so it does not slide while the strip widens. On phones it drops
- * below the counter, since a long tag would collide with it on a narrow card.
- */
-function ProjectTag({ open, children }: { open: boolean; children: ReactNode }) {
+/** Glass pill naming the solution's technical level, shown above the project title. */
+function ProjectTag({ children }: { children: ReactNode }) {
   return (
-    <div className={`pointer-events-none absolute left-0 top-0 ${stripContent} ${openOnly(open)}`}>
-      <span className="absolute left-7 top-16 whitespace-nowrap rounded-full border border-white/10 bg-zinc-950/40 px-3 py-1.5 text-[10px] uppercase tracking-[0.2em] text-zinc-300 backdrop-blur-md transition-colors duration-700 ease-luxe group-hover:border-zinc-500/50 sm:left-auto sm:right-7 sm:top-6 sm:text-xs">
-        {children}
-      </span>
-    </div>
+    <span className="mb-5 inline-block rounded-2xl border border-white/10 bg-zinc-950/40 px-3 py-1.5 text-[10px] uppercase tracking-[0.2em] text-zinc-300 backdrop-blur-md transition-colors duration-700 ease-luxe group-hover:border-zinc-500/50 sm:whitespace-nowrap sm:rounded-full sm:text-xs">
+      {children}
+    </span>
   );
 }
 
@@ -305,12 +299,11 @@ function ProjectCard({
 
       <StripLabel open={open}>{project.title}</StripLabel>
 
-      <ProjectTag open={open}>{project.tag}</ProjectTag>
-
       <div
         className={`absolute bottom-0 left-0 flex ${stripContent} items-end justify-between gap-6 p-7 md:p-9 ${openOnly(open)}`}
       >
-        <div>
+        <div className="min-w-0">
+          <ProjectTag>{project.tag}</ProjectTag>
           <h3 className="font-serif text-4xl font-light text-gold md:text-5xl">{project.title}</h3>
           <p className="mt-4 text-[10px] tracking-[0.25em] text-foreground/50">{project.tags}</p>
         </div>
@@ -369,9 +362,8 @@ function UpcomingCard({
 
       <StripLabel open={open}>{project.title}</StripLabel>
 
-      <ProjectTag open={open}>{project.tag}</ProjectTag>
-
       <div className={`absolute bottom-0 left-0 ${stripContent} p-7 md:p-9 ${openOnly(open)}`}>
+        <ProjectTag>{project.tag}</ProjectTag>
         <h3 className="font-serif text-4xl font-light text-foreground/80 md:text-5xl">{project.title}</h3>
         <p className="mt-4 text-[10px] tracking-[0.25em] text-foreground/45">
           {project.sector.toUpperCase()} • {project.eta}
