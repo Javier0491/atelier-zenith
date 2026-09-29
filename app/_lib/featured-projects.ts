@@ -50,6 +50,15 @@ export type UpcomingProject = {
 
 export const upcomingProjects: UpcomingProject[] = [
   {
+    title: "CRM Aseguradora",
+    tag: "CRM MULTI-AGENTE ESCALABLE",
+    sector: "Seguros & Brokers",
+    status: "En desarrollo",
+    eta: "2026",
+    image: "/proyecto5.png",
+    art: "radial-gradient(ellipse 65% 50% at 30% 35%, rgba(197,160,89,0.3), transparent 70%), radial-gradient(circle at 80% 80%, rgba(229,229,229,0.06), transparent 50%), linear-gradient(170deg, #181714, #090909)",
+  },
+  {
     title: "Fashion Tour NYC",
     tag: "PLATAFORMA INTERACTIVA",
     sector: "Moda & Experiencias",
